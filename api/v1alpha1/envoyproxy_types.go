@@ -290,6 +290,9 @@ const (
 	// EnvoyFilterGRPCStats defines the Envoy HTTP gRPC stats filter.
 	EnvoyFilterGRPCStats EnvoyFilter = "envoy.filters.http.grpc_stats"
 
+	// EnvoyFilterGRPCJSONTranscoder defines the Envoy HTTP gRPC-JSON transcoder filter.
+	EnvoyFilterGRPCJSONTranscoder EnvoyFilter = "envoy.filters.http.grpc_json_transcoder"
+
 	// EnvoyFilterCustomResponse defines the Envoy HTTP custom response filter.
 	EnvoyFilterCustomResponse EnvoyFilter = "envoy.filters.http.custom_response"
 

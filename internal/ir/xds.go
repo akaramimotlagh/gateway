@@ -925,6 +925,8 @@ type TrafficFeatures struct {
 	Telemetry *egv1a1.BackendTelemetry `json:"telemetry,omitempty" yaml:"telemetry,omitempty"`
 	// RequestBuffer defines the schema for enabling buffered requests
 	RequestBuffer *RequestBuffer `json:"requestBuffer,omitempty" yaml:"requestBuffer,omitempty"`
+	// GRPCJSONTranscoder defines the configuration for gRPC-JSON transcoding
+	GRPCJSONTranscoder *GRPCJSONTranscoder `json:"grpcJsonTranscoder,omitempty" yaml:"grpcJsonTranscoder,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -3296,6 +3298,40 @@ type EndpointOverride struct {
 type EndpointOverrideExtractFrom struct {
 	// Header defines the header to get the override endpoint addresses.
 	Header *string `json:"header,omitempty" yaml:"header,omitempty"`
+}
+
+// GRPCJSONTranscoder defines the configuration for gRPC-JSON transcoding in the IR.
+// +k8s:deepcopy-gen=true
+type GRPCJSONTranscoder struct {
+	// ProtoDescriptor contains the base64-encoded FileDescriptorSet for the gRPC services.
+	ProtoDescriptor string `json:"protoDescriptor" yaml:"protoDescriptor"`
+	// Services defines the gRPC services that should be transcoded.
+	Services []string `json:"services,omitempty" yaml:"services,omitempty"`
+	// PrintOptions defines the output format options for JSON conversion.
+	PrintOptions *JSONPrintOptions `json:"printOptions,omitempty" yaml:"printOptions,omitempty"`
+	// MatchIncomingRequestRoute enables matching the incoming request route pattern.
+	MatchIncomingRequestRoute *bool `json:"matchIncomingRequestRoute,omitempty" yaml:"matchIncomingRequestRoute,omitempty"`
+	// IgnoredQueryParameters defines query parameters to ignore during transcoding.
+	IgnoredQueryParameters []string `json:"ignoredQueryParameters,omitempty" yaml:"ignoredQueryParameters,omitempty"`
+	// AutoMapping enables automatic field mapping for HTTP query parameters and headers.
+	AutoMapping *bool `json:"autoMapping,omitempty" yaml:"autoMapping,omitempty"`
+	// IgnoreUnknownQueryParameters determines whether to ignore unknown query parameters.
+	IgnoreUnknownQueryParameters *bool `json:"ignoreUnknownQueryParameters,omitempty" yaml:"ignoreUnknownQueryParameters,omitempty"`
+	// ConvertGRPCStatus enables converting gRPC status to HTTP status codes.
+	ConvertGRPCStatus *bool `json:"convertGrpcStatus,omitempty" yaml:"convertGrpcStatus,omitempty"`
+}
+
+// JSONPrintOptions defines options for JSON output formatting in the IR.
+// +k8s:deepcopy-gen=true
+type JSONPrintOptions struct {
+	// AddWhitespace adds whitespace for pretty-printing JSON output.
+	AddWhitespace *bool `json:"addWhitespace,omitempty" yaml:"addWhitespace,omitempty"`
+	// AlwaysPrintPrimitiveFields always prints primitive fields even if they have default values.
+	AlwaysPrintPrimitiveFields *bool `json:"alwaysPrintPrimitiveFields,omitempty" yaml:"alwaysPrintPrimitiveFields,omitempty"`
+	// AlwaysPrintEnumsAsInts always prints enum values as integers instead of strings.
+	AlwaysPrintEnumsAsInts *bool `json:"alwaysPrintEnumsAsInts,omitempty" yaml:"alwaysPrintEnumsAsInts,omitempty"`
+	// PreserveProtoFieldNames preserves proto field names in JSON output.
+	PreserveProtoFieldNames *bool `json:"preserveProtoFieldNames,omitempty" yaml:"preserveProtoFieldNames,omitempty"`
 }
 
 // LoadBalancerType defines the type of load balancer for IR.

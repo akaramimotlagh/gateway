@@ -532,6 +532,7 @@ _Appears in:_
 | `httpUpgrade` | _[ProtocolUpgradeConfig](#protocolupgradeconfig) array_ |  false  |  | HTTPUpgrade defines the configuration for HTTP protocol upgrades.<br />If not specified, the default upgrade configuration(websocket) will be used. |
 | `requestBuffer` | _[RequestBuffer](#requestbuffer)_ |  false  |  | RequestBuffer allows the gateway to buffer and fully receive each request from a client before continuing to send the request<br />upstream to the backends. This can be helpful to shield your backend servers from slow clients, and also to enforce a maximum size per request<br />as any requests larger than the buffer size will be rejected.<br />This can have a negative performance impact so should only be enabled when necessary.<br />When enabling this option, you should also configure your connection buffer size to account for these request buffers. There will also be an<br />increase in memory usage for Envoy that should be accounted for in your deployment settings. |
 | `telemetry` | _[BackendTelemetry](#backendtelemetry)_ |  false  |  | Telemetry configures the telemetry settings for the policy target (Gateway or xRoute).<br />This will override the telemetry settings in the EnvoyProxy resource. |
+| `grpcJsonTranscoder` | _[GRPCJSONTranscoder](#grpcjsontranscoder)_ |  false  |  | GRPCJSONTranscoder defines the gRPC-JSON transcoding configuration.<br />This enables automatic transcoding between JSON/HTTP and gRPC protocols. |
 
 
 #### BackendType
@@ -1255,6 +1256,7 @@ _Appears in:_
 | `envoy.filters.http.ratelimit` | EnvoyFilterRateLimit defines the Envoy HTTP rate limit filter.<br /> | 
 | `envoy.filters.http.grpc_web` | EnvoyFilterGRPCWeb defines the Envoy HTTP gRPC-web filter.<br /> | 
 | `envoy.filters.http.grpc_stats` | EnvoyFilterGRPCStats defines the Envoy HTTP gRPC stats filter.<br /> | 
+| `envoy.filters.http.grpc_json_transcoder` | EnvoyFilterGRPCJSONTranscoder defines the Envoy HTTP gRPC-JSON transcoder filter.<br /> | 
 | `envoy.filters.http.custom_response` | EnvoyFilterCustomResponse defines the Envoy HTTP custom response filter.<br /> | 
 | `envoy.filters.http.credential_injector` | EnvoyFilterCredentialInjector defines the Envoy HTTP credential injector filter.<br /> | 
 | `envoy.filters.http.compressor` | EnvoyFilterCompressor defines the Envoy HTTP compressor filter.<br /> | 
@@ -2145,6 +2147,27 @@ _Appears in:_
 | `backendSettings` | _[ClusterSettings](#clustersettings)_ |  false  |  | BackendSettings holds configuration for managing the connection<br />to the backend. |
 
 
+#### GRPCJSONTranscoder
+
+
+
+GRPCJSONTranscoder defines the configuration for gRPC-JSON transcoding.
+
+_Appears in:_
+- [BackendTrafficPolicySpec](#backendtrafficpolicyspec)
+
+| Field | Type | Required | Default | Description |
+| ---   | ---  | ---      | ---     | ---         |
+| `protoDescriptor` | _[ProtoDescriptor](#protodescriptor)_ |  true  |  | ProtoDescriptor defines how to obtain the protocol buffer descriptor set.<br />This is required for the transcoder to understand the gRPC service definition. |
+| `services` | _string array_ |  false  |  | Services defines the gRPC services that should be transcoded.<br />If not specified, all services in the proto descriptor will be transcoded. |
+| `printOptions` | _[JSONPrintOptions](#jsonprintoptions)_ |  false  |  | PrintOptions defines the output format options for JSON conversion. |
+| `matchIncomingRequestRoute` | _boolean_ |  false  |  | MatchIncomingRequestRoute enables matching the incoming request route pattern<br />against the gRPC service method. This is useful when the HTTP route pattern<br />doesn't exactly match the gRPC method pattern. |
+| `ignoredQueryParameters` | _string array_ |  false  |  | IgnoredQueryParameters defines query parameters to ignore during transcoding. |
+| `autoMapping` | _boolean_ |  false  |  | AutoMapping enables automatic field mapping for HTTP query parameters and headers<br />to gRPC message fields when explicit field mapping is not present in the proto. |
+| `ignoreUnknownQueryParameters` | _boolean_ |  false  |  | IgnoreUnknownQueryParameters determines whether to ignore unknown query parameters.<br />If true, unknown query parameters are ignored; if false, the request is rejected. |
+| `convertGrpcStatus` | _boolean_ |  false  |  | ConvertGRPCStatus enables converting gRPC status to HTTP status codes.<br />If true, gRPC status codes are converted to appropriate HTTP status codes. |
+
+
 #### Gateway
 
 
@@ -2763,6 +2786,23 @@ JSONPatchOperationType specifies the JSON Patch operations that can be performed
 _Appears in:_
 - [JSONPatchOperation](#jsonpatchoperation)
 
+
+
+#### JSONPrintOptions
+
+
+
+JSONPrintOptions defines options for JSON output formatting.
+
+_Appears in:_
+- [GRPCJSONTranscoder](#grpcjsontranscoder)
+
+| Field | Type | Required | Default | Description |
+| ---   | ---  | ---      | ---     | ---         |
+| `addWhitespace` | _boolean_ |  false  |  | AddWhitespace adds whitespace for pretty-printing JSON output. |
+| `alwaysPrintPrimitiveFields` | _boolean_ |  false  |  | AlwaysPrintPrimitiveFields always prints primitive fields even if they have default values. |
+| `alwaysPrintEnumsAsInts` | _boolean_ |  false  |  | AlwaysPrintEnumsAsInts always prints enum values as integers instead of strings. |
+| `preserveProtoFieldNames` | _boolean_ |  false  |  | PreserveProtoFieldNames preserves proto field names in JSON output instead<br />of converting them to camelCase. |
 
 
 #### JWT
@@ -3767,6 +3807,37 @@ _Appears in:_
 | ---   | ---  | ---      | ---     | ---         |
 | `body` | _[ExtProcBodyProcessingMode](#extprocbodyprocessingmode)_ |  false  |  | Defines body processing mode |
 | `attributes` | _string array_ |  false  |  | Defines which attributes are sent to the external processor. Envoy Gateway currently<br />supports only the following attribute prefixes: connection, source, destination,<br />request, response, upstream and xds.route.<br />https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/advanced/attributes |
+
+
+#### ProtoDescriptor
+
+
+
+ProtoDescriptor defines how to obtain the protocol buffer descriptor set.
+
+_Appears in:_
+- [GRPCJSONTranscoder](#grpcjsontranscoder)
+
+| Field | Type | Required | Default | Description |
+| ---   | ---  | ---      | ---     | ---         |
+| `type` | _[ProtoDescriptorType](#protodescriptortype)_ |  true  | ValueRef | Type is the type of method to use to read the proto descriptor.<br />Valid values are Inline and ValueRef, default is ValueRef. |
+| `inline` | _string_ |  false  |  | Inline contains the proto descriptor as a base64-encoded string.<br />This should be the binary-encoded FileDescriptorSet. |
+| `valueRef` | _[LocalObjectReference](#localobjectreference)_ |  false  |  | ValueRef is a reference to a local ConfigMap that contains the proto descriptor.<br />The value of key `proto-descriptor` in the ConfigMap will be used.<br />If the key is not found, the first value in the ConfigMap will be used. |
+
+
+#### ProtoDescriptorType
+
+_Underlying type:_ _string_
+
+ProtoDescriptorType specifies the type of proto descriptor source.
+
+_Appears in:_
+- [ProtoDescriptor](#protodescriptor)
+
+| Value | Description |
+| ----- | ----------- |
+| `Inline` | ProtoDescriptorTypeInline allows the user to specify the proto descriptor inline as base64.<br /> | 
+| `ValueRef` | ProtoDescriptorTypeValueRef allows the user to specify the proto descriptor via ConfigMap reference.<br /> | 
 
 
 #### ProtocolUpgradeConfig

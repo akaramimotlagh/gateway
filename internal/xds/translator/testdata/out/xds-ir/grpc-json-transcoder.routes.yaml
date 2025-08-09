@@ -1,0 +1,26 @@
+- ignorePortInHostMatching: true
+  name: first-listener
+  virtualHosts:
+  - domains:
+    - '*'
+    name: first-listener/*
+    routes:
+    - match:
+        path: /greet/world
+      name: first-route
+      route:
+        cluster: first-route-dest
+        upgradeConfigs:
+        - upgradeType: websocket
+      typedPerFilterConfig:
+        envoy.filters.http.grpc_json_transcoder:
+          '@type': type.googleapis.com/envoy.extensions.filters.http.grpc_json_transcoder.v3.GrpcJsonTranscoder
+          autoMapping: true
+          convertGrpcStatus: true
+          ignoreUnknownQueryParameters: true
+          matchIncomingRequestRoute: true
+          printOptions:
+            addWhitespace: true
+          protoDescriptorBin: Q3R3QkNoTmxlR0Z0Y0d4bEwyaGxiR3h2TG5CeWIzUnZFZ2RsZUdGdGNHeGxJaUlLREVobGJHeHZVbVZ4ZFdWemRCSVNDZ1J1WVcxbEdBRWdBU2dKVWdSdVlXMWxJaVVLRFVobGJHeHZVbVZ6Y0c5dWMyVVVGQW9IYldWemMyRm5aUmdCSUFFb0NWSUhiV1Z6YzJGblpUSkpDZ2RIY21WbGRHVnlFajRLQ0ZOaGVVaGxiR3h2RWhVdVpYaGhiWEJzWlM1SVpXeHNiMUpsY1hWbGMzUWFGaTVsZUdGdGNHeGxMa2hsYkd4dlVtVnpjRzl1YzJVaUE0Z0JBVmdBWWdad2NtOTBiek09
+          services:
+          - example.Greeter

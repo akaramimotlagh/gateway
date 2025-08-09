@@ -119,6 +119,12 @@ type BackendTrafficPolicySpec struct {
 	//
 	// +optional
 	Telemetry *BackendTelemetry `json:"telemetry,omitempty"`
+
+	// GRPCJSONTranscoder defines the gRPC-JSON transcoding configuration.
+	// This enables automatic transcoding between JSON/HTTP and gRPC protocols.
+	//
+	// +optional
+	GRPCJSONTranscoder *GRPCJSONTranscoder `json:"grpcJsonTranscoder,omitempty"`
 }
 
 type BackendTelemetry struct {

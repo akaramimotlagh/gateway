@@ -816,23 +816,24 @@ func mergeBackendTrafficPolicy(routePolicy, gwPolicy *egv1a1.BackendTrafficPolic
 
 func (t *Translator) buildTrafficFeatures(policy *egv1a1.BackendTrafficPolicy, resources *resource.Resources) (*ir.TrafficFeatures, error) {
 	var (
-		rl          *ir.RateLimit
-		lb          *ir.LoadBalancer
-		pp          *ir.ProxyProtocol
-		hc          *ir.HealthCheck
-		cb          *ir.CircuitBreaker
-		fi          *ir.FaultInjection
-		to          *ir.Timeout
-		ka          *ir.TCPKeepalive
-		rt          *ir.Retry
-		bc          *ir.BackendConnection
-		ds          *ir.DNS
-		h2          *ir.HTTP2Settings
-		ro          *ir.ResponseOverride
-		rb          *ir.RequestBuffer
-		cp          []*ir.Compression
-		httpUpgrade []ir.HTTPUpgradeConfig
-		err, errs   error
+		rl                 *ir.RateLimit
+		lb                 *ir.LoadBalancer
+		pp                 *ir.ProxyProtocol
+		hc                 *ir.HealthCheck
+		cb                 *ir.CircuitBreaker
+		fi                 *ir.FaultInjection
+		to                 *ir.Timeout
+		ka                 *ir.TCPKeepalive
+		rt                 *ir.Retry
+		bc                 *ir.BackendConnection
+		ds                 *ir.DNS
+		h2                 *ir.HTTP2Settings
+		ro                 *ir.ResponseOverride
+		rb                 *ir.RequestBuffer
+		cp                 []*ir.Compression
+		httpUpgrade        []ir.HTTPUpgradeConfig
+		grpcJSONTranscoder *ir.GRPCJSONTranscoder
+		err, errs          error
 	)
 
 	if policy.Spec.RateLimit != nil {
@@ -892,26 +893,32 @@ func (t *Translator) buildTrafficFeatures(policy *egv1a1.BackendTrafficPolicy, r
 	cp = buildCompression(policy.Spec.Compression, policy.Spec.Compressor)
 	httpUpgrade = buildHTTPProtocolUpgradeConfig(policy.Spec.HTTPUpgrade)
 
+	if grpcJSONTranscoder, err = t.buildGRPCJSONTranscoder(policy, resources); err != nil {
+		err = perr.WithMessage(err, "GRPCJSONTranscoder")
+		errs = errors.Join(errs, err)
+	}
+
 	ds = translateDNS(&policy.Spec.ClusterSettings)
 
 	return &ir.TrafficFeatures{
-		RateLimit:         rl,
-		LoadBalancer:      lb,
-		ProxyProtocol:     pp,
-		HealthCheck:       hc,
-		CircuitBreaker:    cb,
-		FaultInjection:    fi,
-		TCPKeepalive:      ka,
-		Retry:             rt,
-		BackendConnection: bc,
-		HTTP2:             h2,
-		DNS:               ds,
-		Timeout:           to,
-		ResponseOverride:  ro,
-		RequestBuffer:     rb,
-		Compression:       cp,
-		HTTPUpgrade:       httpUpgrade,
-		Telemetry:         policy.Spec.Telemetry,
+		RateLimit:          rl,
+		LoadBalancer:       lb,
+		ProxyProtocol:      pp,
+		HealthCheck:        hc,
+		CircuitBreaker:     cb,
+		FaultInjection:     fi,
+		TCPKeepalive:       ka,
+		Retry:              rt,
+		BackendConnection:  bc,
+		HTTP2:              h2,
+		DNS:                ds,
+		Timeout:            to,
+		ResponseOverride:   ro,
+		RequestBuffer:      rb,
+		Compression:        cp,
+		HTTPUpgrade:        httpUpgrade,
+		GRPCJSONTranscoder: grpcJSONTranscoder,
+		Telemetry:          policy.Spec.Telemetry,
 	}, errs
 }
 
@@ -1570,4 +1577,75 @@ func buildHTTPProtocolUpgradeConfig(cfgs []*egv1a1.ProtocolUpgradeConfig) []ir.H
 	}
 
 	return result
+}
+
+func (t *Translator) buildGRPCJSONTranscoder(policy *egv1a1.BackendTrafficPolicy, resources *resource.Resources) (*ir.GRPCJSONTranscoder, error) {
+	if policy.Spec.GRPCJSONTranscoder == nil {
+		return nil, nil
+	}
+
+	cfg := policy.Spec.GRPCJSONTranscoder
+
+	protoDescriptor, err := t.getProtoDescriptor(cfg.ProtoDescriptor, policy.Namespace, resources)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get proto descriptor: %w", err)
+	}
+
+	var printOptions *ir.JSONPrintOptions
+	if cfg.PrintOptions != nil {
+		printOptions = &ir.JSONPrintOptions{
+			AddWhitespace:              cfg.PrintOptions.AddWhitespace,
+			AlwaysPrintPrimitiveFields: cfg.PrintOptions.AlwaysPrintPrimitiveFields,
+			AlwaysPrintEnumsAsInts:     cfg.PrintOptions.AlwaysPrintEnumsAsInts,
+			PreserveProtoFieldNames:    cfg.PrintOptions.PreserveProtoFieldNames,
+		}
+	}
+
+	return &ir.GRPCJSONTranscoder{
+		ProtoDescriptor:              protoDescriptor,
+		Services:                     cfg.Services,
+		PrintOptions:                 printOptions,
+		MatchIncomingRequestRoute:    cfg.MatchIncomingRequestRoute,
+		IgnoredQueryParameters:       cfg.IgnoredQueryParameters,
+		AutoMapping:                  cfg.AutoMapping,
+		IgnoreUnknownQueryParameters: cfg.IgnoreUnknownQueryParameters,
+		ConvertGRPCStatus:            cfg.ConvertGRPCStatus,
+	}, nil
+}
+
+func (t *Translator) getProtoDescriptor(protoDesc egv1a1.ProtoDescriptor, namespace string, resources *resource.Resources) (string, error) {
+	descriptorType := egv1a1.ProtoDescriptorTypeValueRef
+	if protoDesc.Type != nil {
+		descriptorType = *protoDesc.Type
+	}
+
+	if descriptorType == egv1a1.ProtoDescriptorTypeValueRef {
+		if protoDesc.ValueRef == nil {
+			return "", fmt.Errorf("valueRef must be specified when type is ValueRef")
+		}
+
+		cm := resources.GetConfigMap(namespace, string(protoDesc.ValueRef.Name))
+		if cm == nil {
+			return "", fmt.Errorf("proto descriptor ConfigMap %s/%s not found", namespace, protoDesc.ValueRef.Name)
+		}
+
+		descriptorBytes, ok := cm.Data["proto-descriptor"]
+		if ok {
+			return descriptorBytes, nil
+		}
+		if len(cm.Data) > 0 {
+			for _, v := range cm.Data {
+				return v, nil
+			}
+		}
+
+		return "", fmt.Errorf(
+			"proto descriptor data not found in ConfigMap %s/%s, no 'proto-descriptor' key and no other data found",
+			cm.Namespace, cm.Name)
+	}
+
+	if protoDesc.Inline == nil {
+		return "", fmt.Errorf("inline must be specified when type is Inline")
+	}
+	return *protoDesc.Inline, nil
 }
