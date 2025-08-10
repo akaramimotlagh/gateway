@@ -48,6 +48,41 @@ spec:
           requests:
             cpu: 10m
 ---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: grpc-infra-backend-v1
+  namespace: gateway-conformance-infra
+spec:
+  endpoints:
+  - fqdn:
+      hostname: grpc-infra-backend-v1.gateway-conformance-infra.svc.cluster.local
+      port: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grpc-json-transcoder-httproute
+  namespace: gateway-conformance-infra
+spec:
+  parentRefs:
+  - name: same-namespace
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: "/v1/grpc-echo"
+    backendRefs:
+    - name: grpc-infra-backend-v1
+      port: 8080
+  - matches:
+    - path:
+        type: PathPrefix
+        value: "/gateway_api_conformance.echo_basic.grpcecho.GrpcEcho"
+    backendRefs:
+    - name: grpc-infra-backend-v1
+      port: 8080
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: GRPCRoute
 metadata:
@@ -64,7 +99,7 @@ spec:
     backendRefs:
     - group: gateway.envoyproxy.io
       kind: Backend
-      name: backend-ip
+      name: grpc-infra-backend-v1
       port: 8080
 
 ---
@@ -76,8 +111,8 @@ metadata:
 spec:
   targetRef:
     group: gateway.networking.k8s.io
-    kind: GRPCRoute
-    name: grpc-json-transcoder-grpcroute
+    kind: HTTPRoute
+    name: grpc-json-transcoder-httproute
   grpcJsonTranscoder:
     protoDescriptor:
       type: Inline

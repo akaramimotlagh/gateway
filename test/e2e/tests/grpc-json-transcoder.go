@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	ConformanceTests = append(ConformanceTests, EnvoyGatewayBackendTest)
+	ConformanceTests = append(ConformanceTests, GrpcJsonTranscoderTest)
 }
 
 var GrpcJsonTranscoderTest = suite.ConformanceTest{
@@ -25,18 +25,18 @@ var GrpcJsonTranscoderTest = suite.ConformanceTest{
 	Description: "Uses the gRPC-JSON transcoder filter",
 	Manifests:   []string{"testdata/grpc-json-transcoder.yaml"},
 	Test: func(t *testing.T, suite *suite.ConformanceTestSuite) {
-		t.Run("transcodes HTTP JSON", func(t *testing.T) {
-			// The implementation of this function was copied verbatim from a different test.
-			// TODO: Try to invoke EchoTwo via HTTP / JSON instead of doing what it currently does.
+		t.Run("transcodes HTTP JSON to gRPC", func(t *testing.T) {
 			ns := "gateway-conformance-infra"
-			routeNN := types.NamespacedName{Name: "httproute-to-backend-fqdn-http2", Namespace: ns}
+			routeNN := types.NamespacedName{Name: "grpc-json-transcoder-httproute", Namespace: ns}
 			gwNN := types.NamespacedName{Name: "same-namespace", Namespace: ns}
 			gwAddr := kubernetes.GatewayAndHTTPRoutesMustBeAccepted(t, suite.Client, suite.TimeoutConfig, suite.ControllerName, kubernetes.NewGatewayRef(gwNN), routeNN)
-			BackendMustBeAccepted(t, suite.Client, types.NamespacedName{Name: "backend-fqdn-http2", Namespace: ns})
 
+			// Test the EchoTwo method via HTTP/JSON transcoding
+			// According to the proto file, EchoTwo is mapped to GET /v1/grpc-echo/echo-two
 			expectedResponse := http.ExpectedResponse{
 				Request: http.Request{
-					Path: "/backend-fqdn-http2",
+					Path:   "/v1/grpc-echo/echo-two",
+					Method: "GET",
 				},
 				Response: http.Response{
 					StatusCode: 200,
