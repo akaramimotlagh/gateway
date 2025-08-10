@@ -321,6 +321,131 @@ spec:
                 x-kubernetes-validations:
                 - message: Delay and abort faults are set at least one.
                   rule: ' has(self.delay) || has(self.abort) '
+              grpcJsonTranscoder:
+                description: |-
+                  GRPCJSONTranscoder defines the gRPC-JSON transcoding configuration.
+                  This enables automatic transcoding between JSON/HTTP and gRPC protocols.
+                properties:
+                  autoMapping:
+                    description: |-
+                      AutoMapping enables automatic field mapping for HTTP query parameters and headers
+                      to gRPC message fields when explicit field mapping is not present in the proto.
+                    type: boolean
+                  convertGrpcStatus:
+                    description: |-
+                      ConvertGRPCStatus enables converting gRPC status to HTTP status codes.
+                      If true, gRPC status codes are converted to appropriate HTTP status codes.
+                    type: boolean
+                  ignoreUnknownQueryParameters:
+                    description: |-
+                      IgnoreUnknownQueryParameters determines whether to ignore unknown query parameters.
+                      If true, unknown query parameters are ignored; if false, the request is rejected.
+                    type: boolean
+                  ignoredQueryParameters:
+                    description: IgnoredQueryParameters defines query parameters to
+                      ignore during transcoding.
+                    items:
+                      type: string
+                    type: array
+                  matchIncomingRequestRoute:
+                    description: |-
+                      MatchIncomingRequestRoute enables matching the incoming request route pattern
+                      against the gRPC service method. This is useful when the HTTP route pattern
+                      doesn't exactly match the gRPC method pattern.
+                    type: boolean
+                  printOptions:
+                    description: PrintOptions defines the output format options for
+                      JSON conversion.
+                    properties:
+                      addWhitespace:
+                        description: AddWhitespace adds whitespace for pretty-printing
+                          JSON output.
+                        type: boolean
+                      alwaysPrintEnumsAsInts:
+                        description: AlwaysPrintEnumsAsInts always prints enum values
+                          as integers instead of strings.
+                        type: boolean
+                      alwaysPrintPrimitiveFields:
+                        description: AlwaysPrintPrimitiveFields always prints primitive
+                          fields even if they have default values.
+                        type: boolean
+                      preserveProtoFieldNames:
+                        description: |-
+                          PreserveProtoFieldNames preserves proto field names in JSON output instead
+                          of converting them to camelCase.
+                        type: boolean
+                    type: object
+                  protoDescriptor:
+                    description: |-
+                      ProtoDescriptor defines how to obtain the protocol buffer descriptor set.
+                      This is required for the transcoder to understand the gRPC service definition.
+                    properties:
+                      inline:
+                        description: |-
+                          Inline contains the proto descriptor as a base64-encoded string.
+                          This should be the binary-encoded FileDescriptorSet.
+                        type: string
+                      type:
+                        allOf:
+                        - enum:
+                          - Inline
+                          - ValueRef
+                        - enum:
+                          - Inline
+                          - ValueRef
+                        default: ValueRef
+                        description: |-
+                          Type is the type of method to use to read the proto descriptor.
+                          Valid values are Inline and ValueRef, default is ValueRef.
+                        type: string
+                      valueRef:
+                        description: |-
+                          ValueRef is a reference to a local ConfigMap that contains the proto descriptor.
+                          The value of key `proto-descriptor` in the ConfigMap will be used.
+                          If the key is not found, the first value in the ConfigMap will be used.
+                        properties:
+                          group:
+                            description: |-
+                              Group is the group of the referent. For example, "gateway.networking.k8s.io".
+                              When unspecified or empty string, core API group is inferred.
+                            maxLength: 253
+                            pattern: ^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                          kind:
+                            description: Kind is kind of the referent. For example
+                              "HTTPRoute" or "Service".
+                            maxLength: 63
+                            minLength: 1
+                            pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                            type: string
+                          name:
+                            description: Name is the name of the referent.
+                            maxLength: 253
+                            minLength: 1
+                            type: string
+                        required:
+                        - group
+                        - kind
+                        - name
+                        type: object
+                    required:
+                    - type
+                    type: object
+                    x-kubernetes-validations:
+                    - message: Exactly one of inline or valueRef must be set with
+                        correct type.
+                      rule: (self.type == 'Inline' && has(self.inline) && !has(self.valueRef))
+                        || (self.type == 'ValueRef' && !has(self.inline) && has(self.valueRef))
+                  services:
+                    description: |-
+                      Services defines the gRPC services that should be transcoded.
+                      If not specified, all services in the proto descriptor will be transcoded.
+                    items:
+                      type: string
+                    type: array
+                required:
+                - protoDescriptor
+                type: object
               healthCheck:
                 description: HealthCheck allows gateway to perform active health checking
                   on backends.
