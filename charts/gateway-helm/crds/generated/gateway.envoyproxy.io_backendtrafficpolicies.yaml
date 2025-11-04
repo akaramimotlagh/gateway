@@ -336,46 +336,7 @@ spec:
                       ConvertGRPCStatus enables converting gRPC status to HTTP status codes.
                       If true, gRPC status codes are converted to appropriate HTTP status codes.
                     type: boolean
-                  ignoreUnknownQueryParameters:
-                    description: |-
-                      IgnoreUnknownQueryParameters determines whether to ignore unknown query parameters.
-                      If true, unknown query parameters are ignored; if false, the request is rejected.
-                    type: boolean
-                  ignoredQueryParameters:
-                    description: IgnoredQueryParameters defines query parameters to
-                      ignore during transcoding.
-                    items:
-                      type: string
-                    type: array
-                  matchIncomingRequestRoute:
-                    description: |-
-                      MatchIncomingRequestRoute enables matching the incoming request route pattern
-                      against the gRPC service method. This is useful when the HTTP route pattern
-                      doesn't exactly match the gRPC method pattern.
-                    type: boolean
-                  printOptions:
-                    description: PrintOptions defines the output format options for
-                      JSON conversion.
-                    properties:
-                      addWhitespace:
-                        description: AddWhitespace adds whitespace for pretty-printing
-                          JSON output.
-                        type: boolean
-                      alwaysPrintEnumsAsInts:
-                        description: AlwaysPrintEnumsAsInts always prints enum values
-                          as integers instead of strings.
-                        type: boolean
-                      alwaysPrintPrimitiveFields:
-                        description: AlwaysPrintPrimitiveFields always prints primitive
-                          fields even if they have default values.
-                        type: boolean
-                      preserveProtoFieldNames:
-                        description: |-
-                          PreserveProtoFieldNames preserves proto field names in JSON output instead
-                          of converting them to camelCase.
-                        type: boolean
-                    type: object
-                  protoDescriptor:
+                  descriptor_set:
                     description: |-
                       ProtoDescriptor defines how to obtain the protocol buffer descriptor set.
                       This is required for the transcoder to understand the gRPC service definition.
@@ -436,6 +397,45 @@ spec:
                         correct type.
                       rule: (self.type == 'Inline' && has(self.inline) && !has(self.valueRef))
                         || (self.type == 'ValueRef' && !has(self.inline) && has(self.valueRef))
+                  ignoreUnknownQueryParameters:
+                    description: |-
+                      IgnoreUnknownQueryParameters determines whether to ignore unknown query parameters.
+                      If true, unknown query parameters are ignored; if false, the request is rejected.
+                    type: boolean
+                  ignoredQueryParameters:
+                    description: IgnoredQueryParameters defines query parameters to
+                      ignore during transcoding.
+                    items:
+                      type: string
+                    type: array
+                  matchIncomingRequestRoute:
+                    description: |-
+                      MatchIncomingRequestRoute enables matching the incoming request route pattern
+                      against the gRPC service method. This is useful when the HTTP route pattern
+                      doesn't exactly match the gRPC method pattern.
+                    type: boolean
+                  printOptions:
+                    description: PrintOptions defines the output format options for
+                      JSON conversion.
+                    properties:
+                      addWhitespace:
+                        description: AddWhitespace adds whitespace for pretty-printing
+                          JSON output.
+                        type: boolean
+                      alwaysPrintEnumsAsInts:
+                        description: AlwaysPrintEnumsAsInts always prints enum values
+                          as integers instead of strings.
+                        type: boolean
+                      alwaysPrintPrimitiveFields:
+                        description: AlwaysPrintPrimitiveFields always prints primitive
+                          fields even if they have default values.
+                        type: boolean
+                      preserveProtoFieldNames:
+                        description: |-
+                          PreserveProtoFieldNames preserves proto field names in JSON output instead
+                          of converting them to camelCase.
+                        type: boolean
+                    type: object
                   services:
                     description: |-
                       Services defines the gRPC services that should be transcoded.
@@ -444,7 +444,7 @@ spec:
                       type: string
                     type: array
                 required:
-                - protoDescriptor
+                - descriptor_set
                 type: object
               healthCheck:
                 description: HealthCheck allows gateway to perform active health checking

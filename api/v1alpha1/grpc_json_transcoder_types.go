@@ -11,7 +11,7 @@ import gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 type GRPCJSONTranscoder struct {
 	// ProtoDescriptor defines how to obtain the protocol buffer descriptor set.
 	// This is required for the transcoder to understand the gRPC service definition.
-	ProtoDescriptor ProtoDescriptor `json:"protoDescriptor"`
+	ProtoDescriptor ProtoDescriptor `json:"descriptor_set"`
 
 	// Services defines the gRPC services that should be transcoded.
 	// If not specified, all services in the proto descriptor will be transcoded.
